@@ -61,10 +61,10 @@ m.key = function(n, z)
 end
 
 m.enc = function(n, d)
-  if n == 2 and state.x < 1 then 
-    state.x = state.x + d
+  if n == 3 and d > 0 and state.x ~=1 then 
+    state.x = 1
     io.popen([[mpv --no-video --no-terminal --jack-port="crone:input_(1|2)" http://radio.aporee.org:8000/aporee_high.m3u &]])
-  elseif n == 2 and state.x == 1 then 
+  elseif n == 3 and d < 0 and state.x == 1 then 
     state.x = 0
     os.execute([[killall -15 mpv]])
   end
