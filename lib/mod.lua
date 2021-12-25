@@ -9,7 +9,7 @@
 -- functions.
 --
 
-local mod = require 'core/mods'
+local mod=require 'core/mods'
 
 --
 -- [optional] a mod is like any normal lua module. local variables can be used
@@ -19,8 +19,8 @@ local mod = require 'core/mods'
 -- here a single table is used to hold some x/y values
 --
 
-local state = {
-  x = 0,
+local state={
+  x=0,
 }
 
 
@@ -37,12 +37,49 @@ local state = {
 -- and test out access to mod level state via mod supplied fuctions.
 --
 
-mod.hook.register("system_post_startup", "my startup hacks", function()
-  state.system_post_startup = true
+mod.hook.register("system_post_startup","my startup hacks",function()
+  state.system_post_startup=true
 end)
 
-mod.hook.register("script_pre_init", "my init hacks", function()
+mod.hook.register("script_pre_init","my init hacks",function()
   -- tweak global environment here ahead of the script `init()` function being called
+  print("radio station mod available")
+  local debounce=2
+  local names={
+    "off",
+    "aporee",
+    "KEXP 90.3FM",
+    "WXYC 89.3FM",
+  }
+  local stations={
+    "off",
+    "http://radio.aporee.org:8000/aporee_high.m3u",
+    "http://live-mp3-128.kexp.org/kexp128.mp3.m3u",
+    "http://audio-mp3.ibiblio.org:8000/wxyc.mp3",
+  }
+  params:add_option("radiostation","RADIO",names,1)
+  params:set_action("radiostation",function(x)
+    debounce=2
+  end)
+  clock.run(function()
+    while true do
+      clock.sleep(0.5)
+      if debounce>0 then
+        debounce=debounce-1
+        if debounce==0 then
+          print("debounced")
+          if params:get("radiostation")==1 then
+            os.execute([[killall -15 mpv]])
+          else
+            local url=stations[params:get("radiostation")]
+            print("loading station "..url)
+            os.execute([[killall -15 mpv]])
+            io.popen('mpv --no-video --no-terminal --jack-port="crone:input_(1|2)" '..url..' &')
+          end
+        end
+      end
+    end
+  end)
 end)
 
 
@@ -51,37 +88,33 @@ end)
 -- all the required menu functions defined.
 --
 
-local m = {}
+local m={}
 
-m.key = function(n, z)
-  if n == 2 and z == 1 then
+m.key=function(n,z)
+  if n==2 and z==1 then
     -- return to the mod selection menu
     mod.menu.exit()
   end
 end
 
-m.enc = function(n, d)
-  if n == 3 and d > 0 and state.x ~=1 then 
-    state.x = 1
-    io.popen([[mpv --no-video --no-terminal --jack-port="crone:input_(1|2)" http://radio.aporee.org:8000/aporee_high.m3u &]])
-  elseif n == 3 and d < 0 and state.x == 1 then 
-    state.x = 0
-    os.execute([[killall -15 mpv]])
-  end
+m.enc=function(n,d)
   -- tell the menu system to redraw, which in turn calls the mod's menu redraw
   -- function
   mod.menu.redraw()
 end
 
-m.redraw = function()
+m.redraw=function()
   screen.clear()
-  screen.move(64,40)
-  screen.text_center("radio aporee  " .. state.x)
+--  screen.move(64,40)
+--  screen.text_center("radio aporee  "..state.x)
   screen.update()
 end
 
-m.init = function() end -- on menu entry, ie, if you wanted to start timers
-m.deinit = function() end -- on menu exit
+m.init=function()
+
+end -- on menu entry, ie, if you wanted to start timers
+
+m.deinit=function() end -- on menu exit
 
 -- register the mod menu
 --
@@ -89,7 +122,7 @@ m.deinit = function() end -- on menu exit
 -- of the mod which is being loaded. in order for the menu to work it must be
 -- registered with a name which matches the name of the mod in the dust folder.
 --
-mod.menu.register(mod.this_name, m)
+mod.menu.register(mod.this_name,m)
 
 
 --
@@ -108,10 +141,12 @@ mod.menu.register(mod.this_name, m)
 -- local mod = require 'name_of_mod/lib/mod'
 -- local the_state = mod.get_state()
 --
-local api = {}
+local api={}
 
-api.get_state = function()
+api.get_state=function()
   return state
 end
 
 return api
+
+
